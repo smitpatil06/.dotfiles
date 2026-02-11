@@ -406,7 +406,7 @@ This repository is available under the MIT License. Feel free to use, modify, an
 
 <div align="center">
 
-**[⬆ Back to Top](#-endouros--dwm-dotfiles)**
+**[⬆ Back to Top](#-endeavouros--dwm-dotfiles)**
 
 Made with ❤️ for the Linux community
 
