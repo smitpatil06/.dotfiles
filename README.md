@@ -44,8 +44,10 @@ All configurations are version-controlled and managed using **GNU Stow**, enabli
 | **OS**           | EndeavourOS (Arch-based)                   | Rolling-release Arch Linux derivative                |
 | **Window Manager** | DWM (Suckless)                           | Dynamic, lightweight tiling window manager           |
 | **Terminal**     | Alacritty                                  | GPU-accelerated terminal emulator                    |
-| **Color Scheme** | Catppuccin Mocha                           | Soothing pastel theme for Alacritty                  |
+| **Color Scheme** | Catppuccin Mocha / Gruvbox                 | Multiple theme options for Alacritty                 |
 | **Compositor**   | Picom (GLX backend)                        | Compositing manager optimized for NVIDIA GPUs        |
+| **GTK Theme**    | GTK-3.0 (Adwaita Dark)                     | GTK+ 3 theme configuration                           |
+| **X11 Session**  | .xinitrc                                   | X session startup configuration with dual-monitor support |
 | **Config Manager** | GNU Stow                                 | Symlink farm manager for dotfiles                    |
 
 ---
@@ -71,22 +73,26 @@ This dotfiles repository embraces the **GNU Stow** methodology for configuration
 ├── alacritty/
 │   └── .config/
 │       └── alacritty/
-│           └── alacritty.yml
+│           ├── alacritty.toml
+│           ├── catppuccin-mocha.toml
+│           └── gruvbox_*.toml (multiple theme files)
 ├── picom/
 │   └── .config/
 │       └── picom/
 │           └── picom.conf
-└── dwm/
-    └── .config/
-        └── dwm/
-            └── config.h
+├── gtk-3.0/
+│   └── .config/
+│       └── gtk-3.0/
+│           └── settings.ini
+└── x11/
+    └── .xinitrc
 
 When you run: `stow alacritty`
 
 ~/                        ← Your home directory
 └── .config/
     └── alacritty/
-        └── alacritty.yml ← Symlink to ~/dotfiles/alacritty/.config/alacritty/alacritty.yml
+        └── alacritty.toml ← Symlink to ~/dotfiles/alacritty/.config/alacritty/alacritty.toml
 ```
 
 **Key Benefit**: Edit files in `~/dotfiles/`, and changes immediately reflect in `~/.config/` through symlinks. Commit, push, and your configurations are safely backed up and portable.
@@ -105,9 +111,9 @@ sudo pacman -Syu
 sudo pacman -S stow git base-devel
 
 # Install core components
-sudo pacman -S alacritty picom
+sudo pacman -S alacritty picom gtk3
 
-# DWM needs to be compiled from source (Suckless philosophy)
+# Optional: Install DWM (needs to be compiled from source)
 # Clone DWM from suckless.org or use your patched version
 ```
 
@@ -144,6 +150,8 @@ cd dotfiles
 mkdir -p ~/config_backup
 cp -r ~/.config/alacritty ~/config_backup/ 2>/dev/null
 cp -r ~/.config/picom ~/config_backup/ 2>/dev/null
+cp -r ~/.config/gtk-3.0 ~/config_backup/ 2>/dev/null
+cp ~/.xinitrc ~/config_backup/ 2>/dev/null
 # Add other components as needed
 ```
 
@@ -160,7 +168,8 @@ stow */
 # OR stow individually for more control
 stow alacritty
 stow picom
-stow dwm
+stow gtk-3.0
+stow x11
 # ... and so on for each component
 ```
 
@@ -170,22 +179,21 @@ stow dwm
 # Check that symlinks were created correctly
 ls -la ~/.config/alacritty/
 ls -la ~/.config/picom/
+ls -la ~/.config/gtk-3.0/
+ls -la ~/.xinitrc
 
 # You should see symlinks pointing to ~/dotfiles/
 ```
 
-### 5. Apply DWM Configuration
+### 5. Apply DWM Configuration (Optional)
 
-Since DWM is compiled from source:
+If you're using DWM, it needs to be compiled from source. This repository doesn't include a dwm directory, as DWM is typically maintained separately:
 
 ```bash
 # Navigate to your DWM source directory
 cd ~/path/to/dwm
 
-# Copy config if using this repo's config
-cp ~/dotfiles/dwm/.config/dwm/config.h ./
-
-# Rebuild DWM
+# Configure and rebuild DWM
 sudo make clean install
 ```
 
@@ -218,7 +226,7 @@ stow -D alacritty  # Removes alacritty symlinks
 ```bash
 # Simply edit files in ~/dotfiles/
 cd ~/dotfiles
-nvim alacritty/.config/alacritty/alacritty.yml
+nvim alacritty/.config/alacritty/alacritty.toml
 
 # Changes are immediately active (via symlinks)
 # Commit your changes
@@ -253,20 +261,29 @@ stow */
 - Configured in C source code
 - Patches applied for enhanced functionality
 
-**Configuration Location**: `~/dotfiles/dwm/.config/dwm/config.h`
+**Note**: DWM configuration is typically maintained separately and not included in this dotfiles repository.
 
 ### Alacritty
 
 **Alacritty** is a GPU-accelerated terminal emulator focused on performance and simplicity.
 
-**Theme**: Catppuccin Mocha - A soothing pastel color scheme  
-**Configuration Location**: `~/dotfiles/alacritty/.config/alacritty/alacritty.yml`
+**Themes Available**:
+- Catppuccin Mocha (default) - A soothing pastel color scheme
+- Gruvbox Material Hard Dark
+- Gruvbox Material Medium Dark
+- Gruvbox Dark
+
+**Configuration Location**: `~/dotfiles/alacritty/.config/alacritty/`
+- `alacritty.toml` - Main configuration file (TOML format)
+- `catppuccin-mocha.toml` - Catppuccin Mocha theme
+- `gruvbox_*.toml` - Various Gruvbox theme variants
 
 **Features Configured**:
-- Catppuccin Mocha color palette
-- Custom font settings
-- Opacity and background settings
-- Keybindings
+- Theme imports (easily switch themes by changing the import line)
+- JetBrainsMono Nerd Font with custom sizing
+- Window opacity (0.8) with blur enabled
+- Custom padding and decorations
+- 256-color terminal support
 
 ### Picom
 
@@ -278,8 +295,39 @@ stow */
 **Key Settings**:
 - GLX backend for NVIDIA compatibility
 - VSync enabled for tear-free rendering
+- Dual Kawase blur method with strength 5
 - Optimized shadow settings
 - Window transparency rules
+- Fading disabled for better performance
+
+### GTK-3.0
+
+**GTK-3.0** theme configuration for consistent appearance across GTK applications.
+
+**Configuration Location**: `~/dotfiles/gtk-3.0/.config/gtk-3.0/settings.ini`
+
+**Key Settings**:
+- Theme: Adwaita (dark mode enabled)
+- Icon Theme: Qogir
+- Cursor Theme: Qogir
+- Font: Sans 11
+- Anti-aliasing and hinting enabled
+
+### X11 Session (.xinitrc)
+
+**X11 session startup** configuration with intelligent display management.
+
+**Configuration Location**: `~/dotfiles/x11/.xinitrc`
+
+**Key Features**:
+- Qt theme configuration (qt5ct/qt6ct)
+- High DPI support
+- Dual-monitor setup with NVIDIA Optimus support
+- Automatic detection of external monitor (HDMI-1-0)
+- Different Picom configurations for laptop vs external display
+- NVIDIA-specific VSync handling with ForceCompositionPipeline
+- Background services: dunst, slstatus, feh wallpaper rotation
+- DWM window manager startup
 
 ---
 
@@ -287,30 +335,65 @@ stow */
 
 ### Modifying the Color Scheme
 
-To change the Alacritty theme from Catppuccin Mocha to another theme:
+Alacritty comes with multiple theme options. To switch themes:
 
-1. Edit `~/dotfiles/alacritty/.config/alacritty/alacritty.yml`
-2. Replace the color definitions under the `colors:` section
+**Option 1: Switch to a different pre-configured theme**
+1. Edit `~/dotfiles/alacritty/.config/alacritty/alacritty.toml`
+2. Change the import line to use a different theme:
+   ```toml
+   import = [
+       "~/.config/alacritty/gruvbox_material_hard_dark.toml"  # or any other theme file
+   ]
+   ```
 3. Save and reopen Alacritty (changes apply immediately via symlink)
-4. Commit your changes
+
+**Option 2: Customize an existing theme**
+1. Edit the theme file directly, e.g., `~/dotfiles/alacritty/.config/alacritty/catppuccin-mocha.toml`
+2. Modify color values as desired
+3. Save and the changes apply immediately
+
+**Option 3: Add a new theme**
+1. Create a new `.toml` file in `~/dotfiles/alacritty/.config/alacritty/`
+2. Define your color scheme following the TOML format
+3. Update the import in `alacritty.toml` to use your new theme
+4. Commit your new theme file
 
 ### Adding DWM Patches
 
-To add functionality to DWM:
+To add functionality to DWM (if you're using it):
 
 1. Download desired patch from [suckless.org](https://dwm.suckless.org/patches/)
 2. Apply patch to DWM source: `patch -p1 < patch-file.diff`
 3. Update `config.h` if needed
 4. Recompile: `sudo make clean install`
-5. Copy updated `config.h` to `~/dotfiles/dwm/.config/dwm/`
 
 ### Adjusting Picom Settings
 
 For different visual effects or performance tuning:
 
 1. Edit `~/dotfiles/picom/.config/picom/picom.conf`
-2. Adjust shadow, fade, or transparency settings
+2. Adjust shadow, fade, blur, or transparency settings
 3. Restart Picom: `pkill picom && picom -b`
+
+### Customizing GTK Theme
+
+To change the GTK theme or icons:
+
+1. Edit `~/dotfiles/gtk-3.0/.config/gtk-3.0/settings.ini`
+2. Modify `gtk-theme-name`, `gtk-icon-theme-name`, or other settings
+3. Changes apply to new GTK applications immediately
+
+### Modifying X11 Session Startup
+
+To customize your X session startup:
+
+1. Edit `~/dotfiles/x11/.xinitrc`
+2. Add or modify:
+   - Monitor configurations
+   - Startup applications
+   - Environment variables
+   - Display settings
+3. Changes take effect on next X session login
 
 ---
 
@@ -323,7 +406,7 @@ For different visual effects or performance tuning:
 **Solution**: 
 ```bash
 # Remove or backup the conflicting file
-mv ~/.config/alacritty/alacritty.yml ~/.config/alacritty/alacritty.yml.backup
+mv ~/.config/alacritty/alacritty.toml ~/.config/alacritty/alacritty.toml.backup
 
 # Then retry stow
 stow alacritty
