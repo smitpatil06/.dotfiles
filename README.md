@@ -406,7 +406,7 @@ To customize your X session startup:
 **Solution**: 
 ```bash
 # Remove or backup the conflicting file
-mv ~/.config/alacritty/alacritty.yml ~/.config/alacritty/alacritty.yml.backup
+mv ~/.config/alacritty/alacritty.toml ~/.config/alacritty/alacritty.toml.backup
 
 # Then retry stow
 stow alacritty
