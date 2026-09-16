@@ -7,6 +7,8 @@ export QT_QPA_PLATFORMTHEME=qt5ct
 export QT_QPA_PLATFORM=xcb
 export QT_STYLE_OVERRIDE=Fusion
 
+# Alacritty 
+export TERMINAL="alacritty"
 
 # PI configuration
 # Tell Pi to use your local Ollama server
@@ -34,3 +36,10 @@ case ":$PATH:" in
 esac
 # pnpm end
 alias rosetta='python /home/smitp/unstop/Rosetta/rosetta.py'
+export PATH="$HOME/.local/bin:$PATH"
+
+# rote bundled runtimes (node, npm, npx, deno)
+export PATH="$HOME/.rote/bin:$PATH"
+
+# rote shell integration
+[ -f ~/.rote/shell/init.sh ] && source ~/.rote/shell/init.sh

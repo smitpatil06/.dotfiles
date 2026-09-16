@@ -27,3 +27,8 @@ style = "Bold"
 [font.italic]
 family = "JetBrainsMono Nerd Font"
 style = "Italic"
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001B\r"

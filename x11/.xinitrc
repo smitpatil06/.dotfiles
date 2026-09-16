@@ -45,6 +45,24 @@ fi
 # Connect Intel iGPU to NVIDIA GPU
 xrandr --setprovideroutputsource modesetting NVIDIA-0 
 
+# Function to extract Resolution and FPS
+get_mode_and_rate() {
+    local out="$1"
+    xrandr --query | awk -v out="$out" '
+        $0 ~ "^"out" connected" { grab=1; next }
+        /^[A-Za-z0-9_-]+ (connected|disconnected)/ { grab=0 }
+        grab && $1 ~ /^[0-9]+x[0-9]+$/ && !res {
+            res=$1; max=0
+            for (i=2; i<=NF; i++) {
+                val=$i; gsub(/[*+]/,"",val)
+                if (val+0 > max) max=val+0
+            }
+            print res, max
+            exit
+        }
+    '
+}
+
 EXT=$(xrandr | grep " connected" | grep -i -v "edp" | head -n 1 | awk '{print $1}')
 INT=$(xrandr | grep " connected" | grep -i "edp" | head -n 1 | awk '{print $1}')
 
@@ -55,15 +73,20 @@ killall -q dunst
 
 
 if [ -n "$EXT" ] && [ -n "$INT" ]; then
-    # --- DUAL MONITOR SETUP (NVIDIA) ---
-    xrandr --output "$EXT" --mode 1920x1080 --rate 100.00 --primary \
-           --output "$INT" --mode 1920x1200 --rate 100.00 --right-of "$EXT"
+    read -r RES_EXT FPS_EXT <<< "$(get_mode_and_rate "$EXT")"
+    read -r RES_INT FPS_INT <<< "$(get_mode_and_rate "$INT")"
 
-    # Optional: NVIDIA Driver VSync (ForceCompositionPipeline)
-    # Note: nvidia-settings uses its own naming convention (like HDMI-0 instead of HDMI-1-0).
-    # If you get screen tearing on the external monitor, uncomment and adjust the name below.
-nvidia-settings --assign CurrentMetaMode="${EXT}: 1920x1080_100 @1920x1080 +1920+0 {ForceFullCompositionPipeline=On}, ${INT}: 1920x1200_165 @1920x1200 +0+0 {ForceFullCompositionPipeline=On}" &	
+    # nvidia-settings wants an integer Hz in the mode-name (e.g. 100, not 100.00)
+    FPS_EXT_INT="${FPS_EXT%%.*}"
+    FPS_INT_INT="${FPS_INT%%.*}"
 
+    # INT sits left-of EXT, so EXT's x-offset = INT's width
+    INT_W="${RES_INT%%x*}"
+
+    xrandr --output "$EXT" --mode "$RES_EXT" --rate "$FPS_EXT" --primary \
+           --output "$INT" --mode "$RES_INT" --rate "$FPS_INT" --left-of "$EXT"
+
+    nvidia-settings --assign CurrentMetaMode="${EXT}: ${RES_EXT}_${FPS_EXT_INT} @${RES_EXT} +${INT_W}+0 {ForceFullCompositionPipeline=On}, ${INT}: ${RES_INT}_${FPS_INT_INT} @${RES_INT} +0+0 {ForceFullCompositionPipeline=On}" &
 picom -b &
 
 elif [ -n "$INT" ]; then
@@ -88,6 +111,7 @@ rfkill unblock all &
 
 dunst &
 slstatus &
+thunar --daemon &
 
 # Wallpaper setup
 # 1. Immediately set a random wallpaper on boot so the screen isn't blank
@@ -95,9 +119,10 @@ feh --bg-fill --randomize ~/Wallpapers/*
 
 # 2. Start the 5-minute background loop daemon
 ~/suckless/dmenu/scripts/set_wallpaper.sh --loop &
-
+xmousepasteblock &
 clipmenud &
 udiskie &
+
 # Launch floating sticky notepad (45 columns wide, 15 rows tall, 20px from right, 40px from top)
 kitty --class ReminderWidget -e vim ~/.system_reminders.txt &
 exec dwm
