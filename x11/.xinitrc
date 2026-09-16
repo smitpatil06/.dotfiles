@@ -40,45 +40,64 @@ if [ -d /etc/X11/xinit/xinitrc.d ] ; then
 fi
 # Custom
 # Define Output Names
-EXT="HDMI-1-0"
-INT="eDP-1"
+
+
+# Connect Intel iGPU to NVIDIA GPU
+xrandr --setprovideroutputsource modesetting NVIDIA-0 
+
+EXT=$(xrandr | grep " connected" | grep -i -v "edp" | head -n 1 | awk '{print $1}')
+INT=$(xrandr | grep " connected" | grep -i "edp" | head -n 1 | awk '{print $1}')
 
 # Clean up any existing picom instances BEFORE setup
 killall -q picom
+killall -q slstatus
+killall -q dunst
 
-# Connect Intel iGPU to NVIDIA GPU
-xrandr --setprovideroutputsource modesetting NVIDIA-0
 
-if xrandr | grep -q "$EXT connected"; then
+if [ -n "$EXT" ] && [ -n "$INT" ]; then
     # --- DUAL MONITOR SETUP (NVIDIA) ---
-    xrandr --output $EXT --mode 1920x1080 --rate 100.00 --primary \
-           --output $INT --mode 1920x1200 --rate 60.00 --left-of $EXT
+    xrandr --output "$EXT" --mode 1920x1080 --rate 100.00 --primary \
+           --output "$INT" --mode 1920x1200 --rate 100.00 --right-of "$EXT"
 
-    # NVIDIA Driver handles VSync (ForceCompositionPipeline)
-    nvidia-settings --assign CurrentMetaMode="nvidia-auto-select +0+0 {ForceCompositionPipeline=On}" &
-    
-    # Light Picom (Driver does VSync, so we don't need to)
-    picom -b &
+    # Optional: NVIDIA Driver VSync (ForceCompositionPipeline)
+    # Note: nvidia-settings uses its own naming convention (like HDMI-0 instead of HDMI-1-0).
+    # If you get screen tearing on the external monitor, uncomment and adjust the name below.
+nvidia-settings --assign CurrentMetaMode="${EXT}: 1920x1080_100 @1920x1080 +1920+0 {ForceFullCompositionPipeline=On}, ${INT}: 1920x1200_165 @1920x1200 +0+0 {ForceFullCompositionPipeline=On}" &	
 
-else
+picom -b &
+
+elif [ -n "$INT" ]; then
     # --- LAPTOP ONLY SETUP (Intel) ---
-    xrandr --output $INT --auto --primary --output $EXT --off
+    # We only auto-configure the internal display. 
+    # We don't try to turn off $EXT here because it doesn't exist.
+    xrandr --output "$INT" --auto --primary
+    
+    # Safely turn off all disconnected outputs
+    for output in $(xrandr | grep " disconnected" | awk '{print $1}'); do
+        xrandr --output "$output" --off
+    done
 
-    # Heavy Picom (Compositor MUST handle VSync to stop tearing)
-    picom --backend glx --vsync --no-fading-openclose &
+picom -b --vsync &
 fi
 
+
+
 # --- Background Processes ---
-rfkill unblock wlan &
+rfkill unblock all &
 #/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 
 dunst &
 slstatus &
 
-# Wallpaper loop
-while true; do
-    feh --bg-fill --randomize ~/Wallpapers/*
-    sleep 300
-done &
+# Wallpaper setup
+# 1. Immediately set a random wallpaper on boot so the screen isn't blank
+feh --bg-fill --randomize ~/Wallpapers/*
 
+# 2. Start the 5-minute background loop daemon
+~/suckless/dmenu/scripts/set_wallpaper.sh --loop &
+
+clipmenud &
+udiskie &
+# Launch floating sticky notepad (45 columns wide, 15 rows tall, 20px from right, 40px from top)
+kitty --class ReminderWidget -e vim ~/.system_reminders.txt &
 exec dwm
